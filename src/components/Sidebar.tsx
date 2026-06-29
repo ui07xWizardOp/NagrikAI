@@ -1,6 +1,12 @@
 import StaggeredMenu from "./ui/StaggeredMenu";
 
-export default function Sidebar({ view, setView }: { view: string, setView: (v: any) => void }) {
+export default function Sidebar({
+  view,
+  setView,
+}: {
+  view: string;
+  setView: (v: any) => void;
+}) {
   const navItems = [
     { id: "home", label: "Home" },
     { id: "dashboard", label: "Dashboard" },
@@ -21,15 +27,15 @@ export default function Sidebar({ view, setView }: { view: string, setView: (v: 
       position="left"
       items={navItems}
       socialItems={[
-        { label: 'Twitter', link: 'https://twitter.com' },
-        { label: 'GitHub', link: 'https://github.com' }
+        { label: "Twitter", link: "https://twitter.com" },
+        { label: "GitHub", link: "https://github.com" },
       ]}
       displaySocials={true}
       displayItemNumbering={true}
       menuButtonColor="var(--text-primary)"
       openMenuButtonColor="var(--text-primary)"
       changeMenuColorOnOpen={true}
-      colors={['var(--surface-card)', 'var(--surface-card-muted)']}
+      colors={["var(--surface-card)", "var(--surface-card-muted)"]}
       accentColor="var(--accent)"
       activeId={view}
       onItemClick={(id) => setView(id)}

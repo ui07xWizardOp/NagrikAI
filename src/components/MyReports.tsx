@@ -1,64 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReportDetail from "./ReportDetail";
 import { IssueCard, IssueReport } from "./ui/IssueCard";
 import { EmptyState } from "./ui/StateComponents";
-import { FileText } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
+import { Report } from "../types";
 
-export default function MyReports() {
-  const [reports] = useState<IssueReport[]>([
-    {
-      id: "R-1042",
-      issueType: "Pothole",
-      wardName: "Koramangala 80ft Road",
-      createdAt: "2026-05-12T10:00:00Z",
-      status: "fixed",
-      severity: 3,
-      aiConfidence: 0.95,
-      description: "Large pothole in the middle of the road causing traffic slowdowns.",
-      image: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400"
-    },
-    {
-      id: "R-1043",
-      issueType: "Garbage_Dump",
-      wardName: "HSR Layout Sector 2",
-      createdAt: "2026-05-14T14:30:00Z",
-      status: "progress",
-      severity: 2,
-      aiConfidence: 0.88,
-      description: "Uncollected garbage piling up near the park entrance.",
-      image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=400"
-    },
-    {
-      id: "R-1045",
-      issueType: "Broken_Streetlight",
-      wardName: "Indiranagar 100ft Road",
-      createdAt: "2026-05-15T19:15:00Z",
-      status: "new",
-      severity: 4,
-      aiConfidence: 0.72,
-      description: "Streetlight is completely dark, causing safety issues for pedestrians.",
-      image: "https://images.unsplash.com/photo-1519782522787-8e67aeb61c47?auto=format&fit=crop&q=80&w=400"
-    }
-  ]);
+export default function MyReports({
+  setView,
+}: {
+  setView: (
+    v:
+      | "home"
+      | "capture"
+      | "dashboard"
+      | "playbook"
+      | "hotspots"
+      | "agency"
+      | "karma"
+      | "myreports",
+  ) => void;
+}) {
+  const [reports, setReports] = useState<IssueReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetch("/api/reports")
+      .then((res) => res.json())
+      .then((data) => {
+        const allReports: Report[] = data.reports || [];
+        const myReportIds = JSON.parse(
+          localStorage.getItem("my_reports") || "[]",
+        );
+
+        // Map backend report format to IssueReport format expected by IssueCard
+        const mappedReports = allReports
+          .filter((r) => myReportIds.includes(r.id))
+          .map((r): IssueReport => ({
+            id: r.id,
+            issueType: r.type,
+            wardName: r.ward || "Unknown Ward",
+            createdAt: r.date,
+            status: r.status.includes("Resolved")
+              ? "fixed"
+              : r.status.includes("Progress")
+                ? "progress"
+                : "new",
+            severity: (r.severity as 1 | 2 | 3 | 4 | 5) || 1,
+            aiConfidence: r.impactScore ? r.impactScore / 100 : 0.85,
+            description: r.description,
+            image:
+              r.imageUrl ||
+              "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
+          }));
+
+        setReports(mappedReports);
+      })
+      .catch((err) => console.error("Failed to fetch reports:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filterMapping: Record<string, string[]> = {
-    "All": ["new", "routed", "progress", "fixed", "disputed"],
-    "Pending": ["new", "routed", "disputed"],
+    All: ["new", "routed", "progress", "fixed", "disputed"],
+    Pending: ["new", "routed", "disputed"],
     "In Progress": ["progress"],
-    "Resolved": ["fixed"]
+    Resolved: ["fixed"],
   };
 
-  const filteredReports = reports.filter(r => filterMapping[filter].includes(r.status));
+  const filteredReports = reports.filter((r) =>
+    filterMapping[filter].includes(r.status),
+  );
 
   return (
     <>
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-text-primary mb-2 tracking-tight">My Reports ({reports.length})</h1>
-            <p className="text-text-secondary">Track the status of civic issues you've reported.</p>
+            <h1 className="text-3xl font-bold text-text-primary mb-2 tracking-tight">
+              My Reports ({reports.length})
+            </h1>
+            <p className="text-text-secondary">
+              Track the status of civic issues you've reported.
+            </p>
           </div>
           <div className="flex gap-2 self-start md:self-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
             {["All", "Pending", "In Progress", "Resolved"].map((f) => (
@@ -73,30 +97,43 @@ export default function MyReports() {
           </div>
         </header>
 
-        {filteredReports.length === 0 ? (
+        {loading ? (
+          <div className="bg-surface-card border border-border-default rounded-3xl p-12 flex flex-col items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 text-accent animate-spin mb-4" />
+            <p className="text-text-secondary font-medium">
+              Loading your reports...
+            </p>
+          </div>
+        ) : filteredReports.length === 0 ? (
           <div className="bg-surface-card border border-border-default rounded-3xl">
-            <EmptyState 
-              icon={FileText} 
-              title="No reports found" 
-              description={`You don't have any ${filter.toLowerCase()} reports at the moment.`} 
-              action={{ label: "Report an Issue", onClick: () => {} }}
+            <EmptyState
+              icon={FileText}
+              title="No reports found"
+              description={`You don't have any ${filter.toLowerCase()} reports at the moment.`}
+              action={{
+                label: "Report an Issue",
+                onClick: () => setView("capture"),
+              }}
             />
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredReports.map((report) => (
-              <IssueCard 
-                key={report.id} 
-                report={report} 
-                onClick={() => setSelectedReport(report.id)} 
+              <IssueCard
+                key={report.id}
+                report={report}
+                onClick={() => setSelectedReport(report.id)}
               />
             ))}
           </div>
         )}
       </div>
-      
+
       {selectedReport && (
-        <ReportDetail onClose={() => setSelectedReport(null)} />
+        <ReportDetail
+          reportId={selectedReport}
+          onClose={() => setSelectedReport(null)}
+        />
       )}
     </>
   );

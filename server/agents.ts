@@ -99,12 +99,23 @@ Return JSON exactly like this with no markdown wrapping:
   });
 
   const match = response.text?.match(/\{[\s\S]*\}/);
-  if (match) return JSON.parse(match[0]);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (!parsed.ward || parsed.ward.toLowerCase().includes("unknown") || parsed.ward.toLowerCase() === "n/a") {
+        parsed.ward = "Unassigned (Central Queue)";
+      }
+      return parsed;
+    } catch (e) {
+      // fallback to default
+    }
+  }
+  
   return {
-    ward: "Unknown",
+    ward: "Unassigned (Central Queue)",
     agency: "Municipal Corporation",
     routingConfidence: 0.5,
-    reasoning: "Default routing.",
+    reasoning: "Location unclear, routed to central dispatch.",
   };
 }
 
@@ -149,6 +160,60 @@ export async function runVerificationAgent(reportText: string) {
       reasoning: "Failed to verify via embeddings.",
     };
   }
+}
+
+export async function runImpactAgent(issueType: string, severity: number) {
+  const genai = getAI();
+  if (!genai) throw new Error("Gemini API key not configured");
+
+  const prompt = `You are the Impact Prediction Agent. Predict the citizen impact for a civic issue in India.
+Issue Type: ${issueType}
+Severity: ${severity}/5
+
+Estimate the daily citizen impact (number of people) and predicted new reports in the next 7 days.
+
+Return JSON exactly like this with no markdown wrapping:
+{"dailyImpact": 1200, "predictedNewReports": 2, "predictionConfidence": 0.85, "reasoning": "High traffic area + high severity = widespread disruption."}`;
+
+  const response = await genai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  });
+
+  const match = response.text?.match(/\{[\s\S]*\}/);
+  if (match) return JSON.parse(match[0]);
+  return {
+    dailyImpact: 500,
+    predictedNewReports: 1,
+    predictionConfidence: 0.7,
+    reasoning: "Default impact estimation",
+  };
+}
+
+export async function runRoutingAgent(issueType: string, severity: number) {
+  const genai = getAI();
+  if (!genai) throw new Error("Gemini API key not configured");
+
+  const prompt = `You are the Government Routing Agent. Determine the communication strategy and SLA for a civic issue in India.
+Issue Type: ${issueType}
+Severity: ${severity}/5
+
+Determine the priority action required and a short routing strategy. 
+Return JSON exactly like this with no markdown wrapping:
+{"actionRequired": "Immediate Dispatch", "routingStrategy": "Route to rapid response team via Open311", "reasoning": "Severity 5 requires immediate dispatch."}`;
+
+  const response = await genai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  });
+
+  const match = response.text?.match(/\{[\s\S]*\}/);
+  if (match) return JSON.parse(match[0]);
+  return {
+    actionRequired: "Standard Queue",
+    routingStrategy: "Assign to general ward maintenance",
+    reasoning: "Default routing strategy",
+  };
 }
 
 export async function runRepairAgent(

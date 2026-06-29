@@ -17,18 +17,25 @@ import {
   ChevronRight,
   ArrowRight,
 } from "lucide-react";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import { Report } from "../types";
+import ReportDetail from "./ReportDetail";
 
 function MapUpdater() {
   const map = useMap();
   useEffect(() => {
-    // Invalidate size after a short delay to ensure the container is fully rendered
-    const timer = setTimeout(() => {
+    const observer = new ResizeObserver(() => {
       map.invalidateSize();
-    }, 100);
-    return () => clearTimeout(timer);
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
   }, [map]);
   return null;
 }
@@ -169,12 +176,14 @@ export default function Dashboard({
       | "playbook"
       | "hotspots"
       | "agency"
-      | "karma",
+      | "karma"
+      | "myreports",
   ) => void;
 }) {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<
     "All" | "Pending" | "Verified" | "Resolved"
   >("All");
@@ -496,15 +505,18 @@ export default function Dashboard({
                   Report an Issue
                 </h3>
                 <p className="text-text-muted text-sm">
-                  Describe the issue or upload an image. AI will automatically categorize and route it.
+                  Describe the issue or upload an image. AI will automatically
+                  categorize and route it.
                 </p>
               </div>
               <div className="hidden sm:flex items-center gap-2 bg-accent/10 text-accent px-3 py-1.5 rounded-full border border-accent/20 shadow-sm">
-                 <div className="relative flex h-2 w-2">
+                <div className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                 </div>
-                <span className="text-xs font-bold tracking-wider uppercase">Intake Agent</span>
+                <span className="text-xs font-bold tracking-wider uppercase">
+                  Intake Agent
+                </span>
               </div>
             </div>
             <div className="flex bg-surface-card rounded-lg overflow-hidden border border-border-default shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent transition-all relative z-10">
@@ -513,7 +525,7 @@ export default function Dashboard({
                 className="flex-1 bg-transparent px-4 py-3 outline-none text-sm text-text-primary placeholder:text-text-muted cursor-text"
                 onFocus={() => setView("capture")}
               />
-              <button 
+              <button
                 onClick={() => setView("capture")}
                 className="p-3 text-text-muted hover:text-accent transition-colors flex items-center justify-center"
               >
@@ -531,7 +543,7 @@ export default function Dashboard({
                   <circle cx="12" cy="13" r="3" />
                 </svg>
               </button>
-              <button 
+              <button
                 onClick={() => setView("capture")}
                 className="bg-accent hover:bg-accent-hover text-text-on-accent px-5 shrink-0 font-semibold transition-colors flex items-center justify-center group-hover:bg-accent-hover"
                 aria-label="Submit issue"
@@ -547,62 +559,97 @@ export default function Dashboard({
               <h3 className="font-bold text-lg text-text-primary">
                 Recent Reports
               </h3>
-              <button className="text-xs text-accent font-semibold hover:underline">View all</button>
+              <button
+                onClick={() => setView("myreports")}
+                className="text-xs text-accent font-semibold hover:underline"
+              >
+                View all
+              </button>
             </div>
             <div className="p-6 space-y-4 bg-surface-canvas">
               <div className="grid gap-4 md:grid-cols-1">
                 {loading ? (
                   <div className="col-span-full flex flex-col items-center justify-center py-12 text-text-subtle bg-surface-card border border-border-default rounded-lg">
                     <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin mb-4"></div>
-                    <span className="font-mono text-xs uppercase tracking-widest">Loading Reports...</span>
+                    <span className="font-mono text-xs uppercase tracking-widest">
+                      Loading Reports...
+                    </span>
                   </div>
                 ) : (
                   <>
                     {filteredReports.map((report) => (
-                  <div key={report.id} className="flex items-center gap-4 py-3 border-b border-border-default last:border-0 hover:bg-surface-canvas rounded-lg px-2 -mx-2 transition-colors cursor-pointer group">
-                    <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden shrink-0 border border-border-subtle">
-                      {report.imageUrl ? (
-                        <img src={report.imageUrl} alt={report.type} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text-subtle">
-                          <MapPin size={20} />
+                      <div
+                        key={report.id}
+                        onClick={() => setSelectedReport(report.id)}
+                        className="flex items-center gap-4 py-3 border-b border-border-default last:border-0 hover:bg-surface-canvas rounded-lg px-2 -mx-2 transition-colors cursor-pointer group"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden shrink-0 border border-border-subtle">
+                          {report.imageUrl ? (
+                            <img
+                              src={report.imageUrl}
+                              alt={report.type}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-text-subtle">
+                              <MapPin size={20} />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                        <h4 className="font-semibold text-text-primary text-sm group-hover:text-accent transition-colors">{report.type}</h4>
-                        {report.status.includes('Verified') && (
-                           <div className="inline-flex w-fit items-center gap-1 bg-surface-muted px-1.5 py-0.5 rounded text-xxs text-text-secondary border border-border-default shadow-sm" title="AI Confidence Score">
-                             <Radar size={10} className="text-accent shrink-0" />
-                             <span className="font-mono shrink-0">98%</span>
-                           </div>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <h4 className="font-semibold text-text-primary text-sm group-hover:text-accent transition-colors">
+                              {report.type}
+                            </h4>
+                            {report.status.includes("Verified") && (
+                              <div
+                                className="inline-flex w-fit items-center gap-1 bg-surface-muted px-1.5 py-0.5 rounded text-xxs text-text-secondary border border-border-default shadow-sm"
+                                title="AI Confidence Score"
+                              >
+                                <Radar
+                                  size={10}
+                                  className="text-accent shrink-0"
+                                />
+                                <span className="font-mono shrink-0">98%</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs text-text-muted">
+                              {report.location}
+                            </span>
+                            <span className="text-xxs text-text-subtle font-mono shrink-0">
+                              •
+                            </span>
+                            <span className="text-xs text-text-muted shrink-0">
+                              {new Date(report.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xxs font-bold uppercase tracking-wider ${
+                              report.status.includes("Resolved")
+                                ? "bg-success/10 text-success"
+                                : report.status.includes("Verified")
+                                  ? "bg-accent/10 text-accent"
+                                  : "bg-warning/10 text-warning"
+                            }`}
+                          >
+                            {report.status
+                              .replace(" Verification", "")
+                              .replace("Community Verified", "Verified")}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-xs text-text-muted">{report.location}</span>
-                        <span className="text-xxs text-text-subtle font-mono shrink-0">•</span>
-                        <span className="text-xs text-text-muted shrink-0">{new Date(report.date).toLocaleDateString()}</span>
+                    ))}
+                    {filteredReports.length === 0 && (
+                      <div className="col-span-full py-12 text-center border border-dashed border-border-default rounded-lg bg-surface-card">
+                        <div className="text-text-subtle font-mono text-xs uppercase tracking-widest">
+                          No recent reports found.
+                        </div>
                       </div>
-                    </div>
-                    <div className="shrink-0 flex items-center gap-3">
-                      <span className={`px-2.5 py-1 rounded-full text-xxs font-bold uppercase tracking-wider ${
-                        report.status.includes('Resolved') ? 'bg-success/10 text-success' :
-                        report.status.includes('Verified') ? 'bg-accent/10 text-accent' :
-                        'bg-warning/10 text-warning'
-                      }`}>
-                        {report.status.replace(' Verification', '').replace('Community Verified', 'Verified')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {filteredReports.length === 0 && (
-                  <div className="col-span-full py-12 text-center border border-dashed border-border-default rounded-lg bg-surface-card">
-                    <div className="text-text-subtle font-mono text-xs uppercase tracking-widest">
-                      No recent reports found.
-                    </div>
-                  </div>
-                )}
+                    )}
                   </>
                 )}
               </div>
@@ -637,13 +684,17 @@ export default function Dashboard({
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-text-primary">78</span>
+                  <span className="text-2xl font-black text-text-primary">
+                    78
+                  </span>
                   <span className="text-xxs font-semibold text-text-muted">
                     /100
                   </span>
                 </div>
               </div>
-              <div className="text-success font-semibold text-xs mt-2">Good</div>
+              <div className="text-success font-semibold text-xs mt-2">
+                Good
+              </div>
             </div>
 
             <div className="md:col-span-2 bg-surface-card border border-border-default rounded-2xl p-6 shadow-sm flex flex-col">
@@ -655,11 +706,20 @@ export default function Dashboard({
                   <PieChart>
                     <Pie
                       data={Object.entries(
-                        reports.reduce((acc, report) => {
-                          acc[report.type] = (acc[report.type] || 0) + 1;
-                          return acc;
-                        }, {} as Record<string, number>)
-                      ).map(([name, value]: [string, any]) => ({ name, value: Number(value) })).sort((a,b) => b.value - a.value).slice(0, 5)}
+                        reports.reduce(
+                          (acc, report) => {
+                            acc[report.type] = (acc[report.type] || 0) + 1;
+                            return acc;
+                          },
+                          {} as Record<string, number>,
+                        ),
+                      )
+                        .map(([name, value]: [string, any]) => ({
+                          name,
+                          value: Number(value),
+                        }))
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 5)}
                       cx="50%"
                       cy="50%"
                       innerRadius={45}
@@ -668,17 +728,45 @@ export default function Dashboard({
                       dataKey="value"
                     >
                       {Object.entries(
-                        reports.reduce((acc, report) => {
-                          acc[report.type] = (acc[report.type] || 0) + 1;
-                          return acc;
-                        }, {} as Record<string, number>)
-                      ).map(([name, value]: [string, any]) => ({ name, value: Number(value) })).sort((a,b) => b.value - a.value).slice(0, 5).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['var(--agent-2)', 'var(--secondary)', 'var(--highlight)', 'var(--agent-6)', 'var(--danger)'][index % 5]} />
-                      ))}
+                        reports.reduce(
+                          (acc, report) => {
+                            acc[report.type] = (acc[report.type] || 0) + 1;
+                            return acc;
+                          },
+                          {} as Record<string, number>,
+                        ),
+                      )
+                        .map(([name, value]: [string, any]) => ({
+                          name,
+                          value: Number(value),
+                        }))
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 5)
+                        .map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              [
+                                "var(--agent-2)",
+                                "var(--secondary)",
+                                "var(--highlight)",
+                                "var(--agent-6)",
+                                "var(--danger)",
+                              ][index % 5]
+                            }
+                          />
+                        ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--surface-canvas)', borderColor: 'var(--border-subtle)', borderRadius: '8px' }}
-                      itemStyle={{ color: 'var(--text-primary)', fontSize: '12px' }}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--surface-canvas)",
+                        borderColor: "var(--border-subtle)",
+                        borderRadius: "8px",
+                      }}
+                      itemStyle={{
+                        color: "var(--text-primary)",
+                        fontSize: "12px",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -710,7 +798,9 @@ export default function Dashboard({
                   Resolved
                 </div>
                 <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-2 text-text-primary">
-                  {reports.filter((r) => r.status === "Resolved" || r.status === "Fixed").length || "8,023"}
+                  {reports.filter(
+                    (r) => r.status === "Resolved" || r.status === "Fixed",
+                  ).length || "8,023"}
                 </div>
                 <div className="text-success text-xxs sm:text-xs font-semibold">
                   +24% this week
@@ -723,7 +813,8 @@ export default function Dashboard({
                   In Progress
                 </div>
                 <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-2 text-text-primary">
-                  {reports.filter((r) => r.status === "In Progress").length || "3,214"}
+                  {reports.filter((r) => r.status === "In Progress").length ||
+                    "3,214"}
                 </div>
                 <div className="text-warning text-xxs sm:text-xs font-semibold">
                   +5% this week
@@ -731,21 +822,40 @@ export default function Dashboard({
               </div>
             </div>
           </div>
-          
+
           <div className="bg-danger-subtle border border-danger/20 rounded-xl p-4 flex justify-between items-center shadow-sm">
             <div className="flex items-center gap-2">
-               <AlertTriangle size={18} className="text-danger" />
-               <span className="text-danger-text font-semibold text-sm">Hotspots</span>
+              <AlertTriangle size={18} className="text-danger" />
+              <span className="text-danger-text font-semibold text-sm">
+                Hotspots
+              </span>
             </div>
-            <span className="bg-danger text-white text-xs font-bold px-2 py-1 rounded-md">24 High risk areas</span>
+            <span className="bg-danger text-white text-xs font-bold px-2 py-1 rounded-md">
+              24 High risk areas
+            </span>
           </div>
 
           {/* Live Map */}
           <div className="bg-surface-card border border-border-default rounded-2xl shadow-sm flex flex-col min-h-[350px] flex-1 overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-border-default flex justify-between items-center bg-surface-card z-10 shrink-0">
               <h3 className="font-bold text-lg text-text-primary">Live Map</h3>
-              <button className="text-xs text-text-secondary border border-border-default rounded px-3 py-1 bg-surface-canvas hover:bg-surface-muted flex items-center gap-1 font-semibold">
-                All Issues <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              <button
+                onClick={() =>
+                  setViewMode(viewMode === "list" ? "map" : "list")
+                }
+                className="text-xs text-text-secondary border border-border-default rounded px-3 py-1 bg-surface-canvas hover:bg-surface-muted flex items-center gap-1 font-semibold"
+              >
+                Toggle View{" "}
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
               </button>
             </div>
             <div className="flex-1 w-full relative h-[300px] min-h-[300px]">
@@ -799,7 +909,9 @@ export default function Dashboard({
                                   : "bg-warning-subtle text-warning-text"
                               }`}
                             >
-                              {report.status.replace(' Verification', '').replace('Community Verified', 'Verified')}
+                              {report.status
+                                .replace(" Verification", "")
+                                .replace("Community Verified", "Verified")}
                             </span>
                           </div>
                         </Popup>
@@ -815,67 +927,95 @@ export default function Dashboard({
             <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none transition-all duration-500 group-hover:bg-accent/10"></div>
             <div className="flex items-center justify-between mb-6 relative z-10">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">City Pulse Agent</h3>
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                  City Pulse Agent
+                </h3>
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-xxs font-bold border border-accent/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
                   ANALYZING
                 </span>
               </div>
               <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
               </div>
             </div>
-            
+
             <div className="space-y-5 relative z-10">
-              <div className="group/item">
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0 shadow-[0_0_8px_rgba(var(--accent-rgb),0.8)]" />
-                  <div>
-                    <p className="text-sm text-text-primary font-medium">Pothole reports up 24% in Koramangala this week.</p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <span className="text-xxs font-mono text-text-subtle bg-surface-muted px-1.5 py-0.5 rounded border border-border-subtle">CONFIDENCE 94%</span>
-                      <span className="text-xxs font-mono text-text-subtle flex items-center gap-1">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                        DATA: PW_REPORTS_V2
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {filteredReports
+                .filter((r) => r.severityReasoning)
+                .slice(0, 3)
+                .map((report, idx) => {
+                  const colors = [
+                    "bg-accent",
+                    "bg-secondary",
+                    "bg-highlight",
+                    "bg-warning",
+                  ];
+                  const color = colors[idx % colors.length];
+                  const shadow = `shadow-[0_0_8px_rgba(var(--${color.replace("bg-", "")}-rgb),0.8)]`;
 
-              <div className="group/item">
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary mt-2 shrink-0 shadow-[0_0_8px_rgba(var(--secondary-rgb),0.8)]" />
-                  <div>
-                    <p className="text-sm text-text-primary font-medium">Resolution time for streetlights improved by 1.2 days.</p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <span className="text-xxs font-mono text-text-subtle bg-surface-muted px-1.5 py-0.5 rounded border border-border-subtle">CONFIDENCE 88%</span>
+                  return (
+                    <div
+                      key={report.id}
+                      className="group/item cursor-pointer"
+                      onClick={() => setSelectedReport(report.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${color} mt-2 shrink-0 ${shadow}`}
+                        />
+                        <div>
+                          <p className="text-sm text-text-primary font-medium">
+                            Recent {report.type} reported in{" "}
+                            {report.ward || report.location.split(",")[0]}.
+                          </p>
+                          <div className="mt-2 flex items-center gap-3">
+                            <span className="text-xxs font-mono text-text-subtle bg-surface-muted px-1.5 py-0.5 rounded border border-border-subtle">
+                              CONFIDENCE {Math.round(report.impactScore || 85)}%
+                            </span>
+                            {report.severity >= 4 && (
+                              <span className="text-xxs font-mono text-warning bg-warning-subtle px-1.5 py-0.5 rounded border border-warning/20">
+                                ACTION RECOMMENDED
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 border-l-2 border-border-default pl-3 ml-1">
+                            <p className="text-xs text-text-muted italic">
+                              Reasoning: {report.severityReasoning}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              {filteredReports.filter((r) => r.severityReasoning).length ===
+                0 && (
+                <div className="text-sm font-mono text-text-subtle">
+                  NO RECENT AI ANALYSES FOUND.
                 </div>
-              </div>
-
-              <div className="group/item">
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-highlight mt-2 shrink-0 shadow-[0_0_8px_rgba(var(--highlight-rgb),0.8)]" />
-                  <div>
-                    <p className="text-sm text-text-primary font-medium">High-risk water logging detected near Outer Ring Road.</p>
-                    <div className="mt-2 flex items-center gap-3">
-                       <span className="text-xxs font-mono text-text-subtle bg-surface-muted px-1.5 py-0.5 rounded border border-border-subtle">CONFIDENCE 97%</span>
-                       <span className="text-xxs font-mono text-warning bg-warning-subtle px-1.5 py-0.5 rounded border border-warning/20">ACTION RECOMMENDED</span>
-                    </div>
-                    <div className="mt-2 border-l-2 border-border-default pl-3 ml-1">
-                      <p className="text-xs text-text-muted italic">Reasoning: Heavy rainfall predicted in next 4hrs overlapping with existing unresolved drainage blocks.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+      {selectedReport && (
+        <ReportDetail
+          reportId={selectedReport}
+          onClose={() => setSelectedReport(null)}
+        />
+      )}
     </div>
   );
 }

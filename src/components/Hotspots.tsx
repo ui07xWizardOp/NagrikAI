@@ -13,10 +13,11 @@ import L from "leaflet";
 function MapUpdater() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const observer = new ResizeObserver(() => {
       map.invalidateSize();
-    }, 100);
-    return () => clearTimeout(timer);
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
   }, [map]);
   return null;
 }
@@ -34,7 +35,10 @@ export default function Hotspots() {
         try {
           return JSON.parse(text);
         } catch (e) {
-          console.error("Failed to parse JSON in Hotspots:", text.substring(0, 50));
+          console.error(
+            "Failed to parse JSON in Hotspots:",
+            text.substring(0, 50),
+          );
           return { reports: [] };
         }
       })
@@ -53,7 +57,7 @@ export default function Hotspots() {
   const getSeverityColor = (severity: number) => {
     if (severity >= 4) return "var(--danger)";
     if (severity === 3) return "var(--warning)";
-    return "var(--info)";
+    return "var(--accent)";
   };
 
   return (
@@ -86,19 +90,20 @@ export default function Hotspots() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {reports.map((report) => {
-              // Fallback coordinates if not provided (mocking random spread around Bengaluru)
-              const lat = report.lat || 12.9716 + (Math.random() - 0.5) * 0.1;
-              const lng = report.lng || 77.5946 + (Math.random() - 0.5) * 0.1;
+              const lat = report.lat || 12.9716;
+              const lng = report.lng || 77.5946;
+
+              const predictiveRadius = Math.max(5, report.severity * 3) + (timeOffset * (report.severity / 5) * 1.5);
 
               return (
                 <CircleMarker
                   key={report.id}
                   center={[lat, lng]}
-                  radius={Math.max(5, report.severity * 3)}
+                  radius={predictiveRadius}
                   pathOptions={{
                     color: getSeverityColor(report.severity),
                     fillColor: getSeverityColor(report.severity),
-                    fillOpacity: 0.5,
+                    fillOpacity: Math.min(0.8, 0.5 + (timeOffset / 144)),
                   }}
                 >
                   <Popup className="custom-popup">
@@ -111,7 +116,9 @@ export default function Hotspots() {
                       </div>
                       <div className="flex justify-between items-center text-xs font-mono mb-1">
                         <span className="text-text-muted">SEVERITY</span>
-                        <span className="font-bold text-text-primary">{report.severity}/5</span>
+                        <span className="font-bold text-text-primary">
+                          {report.severity}/5
+                        </span>
                       </div>
                       <div className="flex justify-between items-start text-xs font-mono">
                         <span className="text-text-muted mt-0.5">AGENCY</span>
@@ -158,17 +165,26 @@ export default function Hotspots() {
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-4">
           <div className="bg-surface-card/90 backdrop-blur-md border border-border-default p-4 rounded-2xl shadow-lg">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-semibold text-text-primary uppercase tracking-widest">Prediction Window</span>
-              <span className="text-xs font-mono text-accent font-bold bg-accent/10 px-2 py-0.5 rounded">+{timeOffset} Hours</span>
+              <span className="text-xs font-semibold text-text-primary uppercase tracking-widest">
+                Prediction Window
+              </span>
+              <span className="text-xs font-mono text-accent font-bold bg-accent/10 px-2 py-0.5 rounded">
+                +{timeOffset} Hours
+              </span>
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="72" 
+            <label htmlFor="prediction-window" className="sr-only">
+              Prediction Window in Hours
+            </label>
+            <input
+              id="prediction-window"
+              type="range"
+              min="0"
+              max="72"
               step="1"
               value={timeOffset}
               onChange={(e) => setTimeOffset(parseInt(e.target.value))}
               className="w-full accent-accent cursor-pointer"
+              aria-label="Predictive Time Slider"
             />
             <div className="flex justify-between text-xxs text-text-muted font-mono mt-1">
               <span>Now</span>

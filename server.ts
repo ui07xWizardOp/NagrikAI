@@ -9,6 +9,8 @@ import {
   runJurisdictionAgent,
   runVerificationAgent,
   runRepairAgent,
+  runImpactAgent,
+  runRoutingAgent,
 } from "./server/agents";
 
 dotenv.config();
@@ -102,13 +104,17 @@ app.post("/api/report", async (req, res) => {
       "Impact",
       "Predicting citizen impact based on hotspot context...",
     );
-    await new Promise((r) => setTimeout(r, 600));
+    const impactOutput = await runImpactAgent(
+      visionOutput.issueType,
+      severityOutput.adjustedSeverity,
+    );
     sendEvent(
       "Impact",
-      "Estimated daily impact: 2,000 citizens. High risk in next 7 days.",
+      `Estimated daily impact: ${impactOutput.dailyImpact} citizens. Predicted new reports: ${impactOutput.predictedNewReports}`,
       {
-        predictionConfidence: 0.82,
-        predictedNewReports: 3,
+        predictionConfidence: impactOutput.predictionConfidence,
+        predictedNewReports: impactOutput.predictedNewReports,
+        reasoning: impactOutput.reasoning,
       },
     );
 
@@ -143,6 +149,11 @@ app.post("/api/report", async (req, res) => {
     );
 
     // Agent 9: Government Routing
+    sendEvent("Routing", "Submitting to Open311 / drafting formal email...");
+    const routingFinal = await runRoutingAgent(
+      visionOutput.issueType,
+      severityOutput.adjustedSeverity,
+    );
     const slaHours =
       severityOutput.adjustedSeverity === 5
         ? 24
@@ -153,17 +164,16 @@ app.post("/api/report", async (req, res) => {
             : severityOutput.adjustedSeverity === 2
               ? 336
               : 720;
-
-    sendEvent("Routing", "Submitting to Open311 / drafting formal email...");
-    await new Promise((r) => setTimeout(r, 700));
+    
     sendEvent(
       "Routing",
-      `SLA Clock Started: ${slaHours}h. Token: BBMP-${Math.floor(Math.random() * 10000)}`,
+      `SLA Clock Started: ${slaHours}h. Strategy: ${routingFinal.actionRequired}.`,
       {
-        submissionMethod: "open311",
+        submissionMethod: routingFinal.routingStrategy,
         slaDeadline: new Date(
           Date.now() + slaHours * 60 * 60 * 1000,
         ).toISOString(),
+        reasoning: routingFinal.reasoning,
       },
     );
 
@@ -229,6 +239,18 @@ app.get("/api/reports", (req, res) => {
   res.json({ reports });
 });
 
+app.patch("/api/reports/:id", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const report = reports.find((r) => r.id === id);
+  if (report) {
+    if (status) report.status = status;
+    res.json({ success: true, report });
+  } else {
+    res.status(404).json({ success: false, message: "Not found" });
+  }
+});
+
 app.post("/api/reports/:id/comments", (req, res) => {
   const { id } = req.params;
   const { text, author } = req.body;
@@ -245,18 +267,6 @@ app.post("/api/reports/:id/comments", (req, res) => {
     };
     report.comments.push(newComment);
     res.json({ success: true, comment: newComment });
-  } else {
-    res.status(404).json({ success: false, message: "Not found" });
-  }
-});
-
-app.patch("/api/reports/:id", (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const report = reports.find((r) => r.id === id);
-  if (report) {
-    report.status = status;
-    res.json({ success: true, report });
   } else {
     res.status(404).json({ success: false, message: "Not found" });
   }

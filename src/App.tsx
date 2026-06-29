@@ -42,18 +42,24 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-surface-canvas text-text-primary font-sans flex overflow-hidden">
-      {view !== "login" && view !== "landing" && <Sidebar view={view} setView={setView} />}
-      
+      {view !== "login" && view !== "landing" && (
+        <Sidebar view={view} setView={setView} />
+      )}
+
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {view !== "login" && view !== "landing" && <TopHeader setView={setView} />}
-        
-        <main className={`flex-1 overflow-y-auto w-full ${view === "home" ? "p-0" : "p-4 md:p-6 lg:p-8"} ${view === "login" || view === "landing" ? "p-0 md:p-0 lg:p-0 flex flex-col items-center justify-center bg-surface-canvas" : ""}`}>
+        {view !== "login" && view !== "landing" && (
+          <TopHeader setView={setView} />
+        )}
+
+        <main
+          className={`flex-1 overflow-y-auto w-full ${view === "home" ? "p-0" : "p-4 md:p-6 lg:p-8"} ${view === "login" || view === "landing" ? "p-0 md:p-0 lg:p-0 flex flex-col items-center justify-center bg-surface-canvas" : ""}`}
+        >
           {view === "landing" && <Landing setView={setView} />}
           {view === "login" && <Login setView={setView} />}
           {view === "home" && <Home setView={setView} />}
           {view === "capture" && <Capture setView={setView} />}
           {view === "dashboard" && <Dashboard setView={setView} />}
-          {view === "myreports" && <MyReports />}
+          {view === "myreports" && <MyReports setView={setView} />}
           {view === "playbook" && <Playbook />}
           {view === "verify" && <CommunityVerification />}
           {view === "hotspots" && <Hotspots />}

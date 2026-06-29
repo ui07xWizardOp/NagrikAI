@@ -1,6 +1,6 @@
-import { ImgHTMLAttributes, forwardRef } from 'react';
-import { cn } from '../../lib/utils';
-import { User } from 'lucide-react';
+import { ImgHTMLAttributes, forwardRef } from "react";
+import { cn } from "../../lib/utils";
+import { User } from "lucide-react";
 
 export interface AvatarProps extends ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
@@ -12,19 +12,22 @@ const Avatar = forwardRef<HTMLImageElement, AvatarProps>(
       return (
         <img
           src={src}
-          alt={alt || 'Avatar'}
+          alt={alt || "Avatar"}
           ref={ref}
-          className={cn('h-10 w-10 rounded-full object-cover shadow-sm', className)}
+          className={cn(
+            "h-10 w-10 rounded-full object-cover shadow-sm",
+            className,
+          )}
           {...props}
         />
       );
     }
-    
+
     return (
       <div
         className={cn(
-          'flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-text-muted shadow-sm',
-          className
+          "flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-text-muted shadow-sm",
+          className,
         )}
       >
         {fallback ? (
@@ -34,8 +37,8 @@ const Avatar = forwardRef<HTMLImageElement, AvatarProps>(
         )}
       </div>
     );
-  }
+  },
 );
-Avatar.displayName = 'Avatar';
+Avatar.displayName = "Avatar";
 
 export { Avatar };

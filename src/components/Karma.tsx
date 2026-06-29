@@ -17,7 +17,10 @@ export default function Karma() {
         try {
           return JSON.parse(text);
         } catch (e) {
-          console.error("Failed to parse JSON in Karma:", text.substring(0, 50));
+          console.error(
+            "Failed to parse JSON in Karma:",
+            text.substring(0, 50),
+          );
           return { reports: [] };
         }
       })
@@ -132,7 +135,9 @@ export default function Karma() {
           <h3 className="text-xs font-mono tracking-widest uppercase text-warning mb-2 relative z-10">
             Your Karma
           </h3>
-          <div className="text-5xl font-black text-text-primary mb-2 relative z-10">{myKarma}</div>
+          <div className="text-5xl font-black text-text-primary mb-2 relative z-10">
+            {myKarma}
+          </div>
           <div className="text-xs text-text-muted font-mono relative z-10">
             {resolvedCount} issues resolved
           </div>

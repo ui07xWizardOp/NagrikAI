@@ -27,8 +27,8 @@ export default function Playbook() {
               not just answer questions.
             </li>
             <li className="flex gap-3">
-              <span className="text-accent">02.</span> Every AI decision must
-              be explainable.
+              <span className="text-accent">02.</span> Every AI decision must be
+              explainable.
             </li>
             <li className="flex gap-3">
               <span className="text-accent">03.</span> Every AI action must

@@ -1,6 +1,6 @@
-import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from './Card';
-import { cn } from '../../lib/utils';
+import { LucideIcon } from "lucide-react";
+import { Card, CardContent } from "./Card";
+import { cn } from "../../lib/utils";
 
 interface StatCardProps {
   title: string;
@@ -9,12 +9,18 @@ interface StatCardProps {
   trend?: {
     value: number;
     label: string;
-    direction: 'up' | 'down' | 'neutral';
+    direction: "up" | "down" | "neutral";
   };
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, className }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  className,
+}: StatCardProps) {
   return (
     <Card className={cn("overflow-hidden group", className)}>
       <CardContent className="p-6">
@@ -28,27 +34,44 @@ export function StatCard({ title, value, icon: Icon, trend, className }: StatCar
             </div>
           )}
         </div>
-        
+
         <div className="flex items-end gap-3 relative z-10">
           <span className="text-3xl font-bold text-text-primary tracking-tight">
             {value}
           </span>
         </div>
-        
+
         {trend && (
-          <div className={cn(
-            "mt-4 flex items-center gap-1.5 text-sm font-medium relative z-10",
-            trend.direction === 'up' ? 'text-success' : 
-            trend.direction === 'down' ? 'text-danger' : 'text-text-muted'
-          )}>
-            <span className={cn(
-              "px-1.5 py-0.5 rounded text-xs",
-              trend.direction === 'up' ? 'bg-success-subtle' : 
-              trend.direction === 'down' ? 'bg-danger-subtle' : 'bg-surface-muted'
-            )}>
-              {trend.direction === 'up' ? '+' : trend.direction === 'down' ? '-' : ''}{Math.abs(trend.value)}%
+          <div
+            className={cn(
+              "mt-4 flex items-center gap-1.5 text-sm font-medium relative z-10",
+              trend.direction === "up"
+                ? "text-success"
+                : trend.direction === "down"
+                  ? "text-danger"
+                  : "text-text-muted",
+            )}
+          >
+            <span
+              className={cn(
+                "px-1.5 py-0.5 rounded text-xs",
+                trend.direction === "up"
+                  ? "bg-success-subtle"
+                  : trend.direction === "down"
+                    ? "bg-danger-subtle"
+                    : "bg-surface-muted",
+              )}
+            >
+              {trend.direction === "up"
+                ? "+"
+                : trend.direction === "down"
+                  ? "-"
+                  : ""}
+              {Math.abs(trend.value)}%
             </span>
-            <span className="text-text-secondary font-normal">{trend.label}</span>
+            <span className="text-text-secondary font-normal">
+              {trend.label}
+            </span>
           </div>
         )}
       </CardContent>

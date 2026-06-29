@@ -40,6 +40,21 @@ export default function Capture({
   const recognitionRef = useRef<any>(null);
 
   const [interimText, setInterimText] = useState("");
+  const [voiceConfidence, setVoiceConfidence] = useState<number | null>(null);
+  const [toasts, setToasts] = useState<
+    { id: number; message: string; type: "success" | "info" | "error" }[]
+  >([]);
+
+  const addToast = (
+    message: string,
+    type: "success" | "info" | "error" = "info",
+  ) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  };
 
   useEffect(() => {
     // Get geolocation on mount if possible
@@ -70,6 +85,9 @@ export default function Capture({
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             setText((prev) => prev + event.results[i][0].transcript + " ");
+            if (event.results[i][0].confidence !== undefined) {
+              setVoiceConfidence(event.results[i][0].confidence);
+            }
           } else {
             currentTranscript += event.results[i][0].transcript;
           }
@@ -157,12 +175,18 @@ export default function Capture({
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          imageBase64s: images, 
-          text, 
+        body: JSON.stringify({
+          imageBase64s: images,
+          text,
           location,
-          lat: location.includes(",") && !isNaN(parseFloat(location.split(",")[0])) ? parseFloat(location.split(",")[0]) : 12.9784 + (Math.random() - 0.5) * 0.01,
-          lng: location.includes(",") && !isNaN(parseFloat(location.split(",")[1])) ? parseFloat(location.split(",")[1]) : 77.6408 + (Math.random() - 0.5) * 0.01,
+          lat:
+            location.includes(",") && !isNaN(parseFloat(location.split(",")[0]))
+              ? parseFloat(location.split(",")[0])
+              : 12.9784 + (Math.random() - 0.5) * 0.01,
+          lng:
+            location.includes(",") && !isNaN(parseFloat(location.split(",")[1]))
+              ? parseFloat(location.split(",")[1])
+              : 77.6408 + (Math.random() - 0.5) * 0.01,
         }),
       });
 
@@ -205,7 +229,10 @@ export default function Capture({
                 return;
               } else if (data.agent === "Error") {
                 setIsProcessing(false);
-                alert("An error occurred");
+                addToast(
+                  "An error occurred while processing the report.",
+                  "error",
+                );
                 return;
               } else {
                 setLogs((prev) => [
@@ -230,7 +257,35 @@ export default function Capture({
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 py-8 pb-24">
+    <div className="max-w-2xl mx-auto space-y-8 py-8 pb-24 relative">
+      {toasts.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-[100] space-y-2 flex flex-col items-end pointer-events-none">
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              className="bg-surface-card border border-border-default shadow-lg rounded-xl p-4 flex items-center gap-3 animate-fade-in pointer-events-auto"
+            >
+              {toast.type === "success" ? (
+                <CheckCircle className="text-success" size={18} />
+              ) : (
+                <Activity className="text-error" size={18} />
+              )}
+              <span className="text-sm font-medium text-text-primary">
+                {toast.message}
+              </span>
+              <button
+                onClick={() =>
+                  setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+                }
+                className="text-text-muted hover:text-text-primary"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!isProcessing ? (
         <>
           <div className="flex items-center justify-between border-b border-border-default pb-4">
@@ -264,12 +319,14 @@ export default function Capture({
                 </div>
               )}
               <input
+                id="image-upload"
                 type="file"
                 accept="image/*"
                 multiple
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
+                aria-label="Upload photos"
               />
             </div>
 
@@ -313,10 +370,14 @@ export default function Capture({
           </div>
 
           <div className="space-y-3">
-            <label className="block text-xxs font-mono text-text-muted uppercase tracking-widest">
+            <label
+              htmlFor="location-input"
+              className="block text-xxs font-mono text-text-muted uppercase tracking-widest"
+            >
               Detected Location
             </label>
             <input
+              id="location-input"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -325,12 +386,23 @@ export default function Capture({
           </div>
 
           <div className="space-y-3">
-            <label className="block text-xxs font-mono text-text-muted uppercase tracking-widest">
-              Voice Description (Optional)
-            </label>
+            <div className="flex justify-between items-end">
+              <label
+                htmlFor="voice-description"
+                className="block text-xxs font-mono text-text-muted uppercase tracking-widest"
+              >
+                Voice Description (Optional)
+              </label>
+              {voiceConfidence !== null && text.length > 0 && (
+                <span className="text-xxs font-mono text-secondary bg-secondary/10 px-2 py-0.5 rounded border border-secondary/20">
+                  VOICE AGENT CONFIDENCE: {Math.round(voiceConfidence * 100)}%
+                </span>
+              )}
+            </div>
             <div className="relative">
               <div className="relative w-full rounded-lg bg-surface-card border border-border-default overflow-hidden focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
                 <textarea
+                  id="voice-description"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Describe the issue... (or tap mic to speak)"
@@ -360,7 +432,9 @@ export default function Capture({
                 ) : (
                   <Mic
                     size={16}
-                    className={isRecording ? "text-text-on-accent" : "text-accent"}
+                    className={
+                      isRecording ? "text-text-on-accent" : "text-accent"
+                    }
                   />
                 )}
               </button>
@@ -452,7 +526,9 @@ export default function Capture({
                     <span
                       className={`text-xs font-bold uppercase tracking-wider ${textColor} flex items-center gap-2`}
                     >
-                      <span className={`w-2 h-2 rounded-full bg-current`}></span>
+                      <span
+                        className={`w-2 h-2 rounded-full bg-current`}
+                      ></span>
                       {log.agent} Agent
                     </span>
                     <span className="text-xxs text-text-subtle font-mono">
@@ -461,9 +537,7 @@ export default function Capture({
                       })}
                     </span>
                   </div>
-                  <p className="text-sm text-text-primary">
-                    {log.message}
-                  </p>
+                  <p className="text-sm text-text-primary">{log.message}</p>
 
                   {log.metadata && (
                     <div className="mt-4 space-y-3">
@@ -475,7 +549,10 @@ export default function Capture({
                       {log.metadata.confidence && (
                         <div className="inline-flex items-center gap-1.5 bg-surface-muted px-2 py-0.5 rounded text-xs font-medium border border-border-subtle">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
-                          <span className="text-text-primary">{Math.round(log.metadata.confidence * 100)}% confidence</span>
+                          <span className="text-text-primary">
+                            {Math.round(log.metadata.confidence * 100)}%
+                            confidence
+                          </span>
                         </div>
                       )}
                     </div>
