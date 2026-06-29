@@ -251,6 +251,17 @@ app.patch("/api/reports/:id", (req, res) => {
   }
 });
 
+app.post("/api/reports/:id/upvote", (req, res) => {
+  const { id } = req.params;
+  const report = reports.find((r) => r.id === id);
+  if (report) {
+    report.upvotes = (report.upvotes || 0) + 1;
+    res.json({ success: true, upvotes: report.upvotes });
+  } else {
+    res.status(404).json({ success: false, message: "Not found" });
+  }
+});
+
 app.post("/api/reports/:id/comments", (req, res) => {
   const { id } = req.params;
   const { text, author } = req.body;

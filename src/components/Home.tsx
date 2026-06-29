@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import L from "leaflet";
 import { Report } from "../types";
+import ReportDetail from "./ReportDetail";
 
 function MapControls() {
   const map = useMap();
@@ -109,6 +110,7 @@ export default function Home({
 }) {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/reports")
@@ -146,6 +148,9 @@ export default function Home({
                   key={report.id}
                   position={[report.lat, report.lng]}
                   icon={createCustomIcon(report.type)}
+                  eventHandlers={{
+                    click: () => setSelectedReportId(report.id),
+                  }}
                 >
                   <Tooltip
                     direction="top"
@@ -170,7 +175,7 @@ export default function Home({
         <div className="absolute bottom-[280px] md:bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
           <div className="bg-surface-card/90 backdrop-blur-sm border border-border-default px-4 py-2 rounded-full mb-4 shadow-sm text-xs font-semibold text-text-primary flex items-center gap-2 pointer-events-auto">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            Bengaluru
+            Detected Location
           </div>
           <button
             onClick={() => setView("capture")}
@@ -206,7 +211,7 @@ export default function Home({
               reports.slice(0, 3).map((report) => (
                 <div
                   key={report.id}
-                  onClick={() => setView("dashboard")}
+                  onClick={() => setSelectedReportId(report.id)}
                   className="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-muted/50 cursor-pointer transition-colors border border-transparent hover:border-border-default"
                 >
                   <div
@@ -240,6 +245,13 @@ export default function Home({
           </button>
         </div>
       </div>
+
+      {selectedReportId && (
+        <ReportDetail
+          reportId={selectedReportId}
+          onClose={() => setSelectedReportId(null)}
+        />
+      )}
     </div>
   );
 }

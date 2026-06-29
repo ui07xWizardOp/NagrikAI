@@ -29,4 +29,5 @@ export interface Report {
   slaDeadline?: string;
   impactScore?: number;
   comments?: Comment[];
+  upvotes?: number;
 }

@@ -182,10 +182,24 @@ export default function Capture({
           lat:
             location.includes(",") && !isNaN(parseFloat(location.split(",")[0]))
               ? parseFloat(location.split(",")[0])
+              : window.navigator.geolocation
+              ? await new Promise((resolve) => {
+                  window.navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve(pos.coords.latitude),
+                    () => resolve(12.9784 + (Math.random() - 0.5) * 0.01)
+                  );
+                })
               : 12.9784 + (Math.random() - 0.5) * 0.01,
           lng:
             location.includes(",") && !isNaN(parseFloat(location.split(",")[1]))
               ? parseFloat(location.split(",")[1])
+              : window.navigator.geolocation
+              ? await new Promise((resolve) => {
+                  window.navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve(pos.coords.longitude),
+                    () => resolve(77.6408 + (Math.random() - 0.5) * 0.01)
+                  );
+                })
               : 77.6408 + (Math.random() - 0.5) * 0.01,
         }),
       });

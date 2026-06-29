@@ -21,8 +21,11 @@ export default function ReportDetail({
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isUpvoting, setIsUpvoting] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  useEffect(() => {
+  const fetchReportDetails = () => {
     fetch("/api/reports")
       .then((res) => res.json())
       .then((data) => {
@@ -31,6 +34,10 @@ export default function ReportDetail({
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchReportDetails();
   }, [reportId]);
 
   if (loading) {
@@ -243,6 +250,74 @@ export default function ReportDetail({
               </p>
             )}
           </section>
+
+          <section className="space-y-4">
+            <h3 className="text-xs font-bold text-text-subtle uppercase tracking-widest">
+              Community Comments ({report.comments?.length || 0})
+            </h3>
+            <div className="space-y-3">
+              {report.comments?.map((comment) => (
+                <div key={comment.id} className="bg-surface-muted p-4 rounded-xl border border-border-default">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-sm text-text-primary">{comment.author}</span>
+                    <span className="text-xs text-text-muted">{new Date(comment.date).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm text-text-secondary">{comment.text}</p>
+                </div>
+              ))}
+              {(!report.comments || report.comments.length === 0) && (
+                <p className="text-sm text-text-muted italic">No comments yet. Be the first to add context.</p>
+              )}
+            </div>
+            
+            <div className="mt-4 flex gap-2">
+              <input
+                type="text"
+                placeholder="Add a comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                className="flex-1 bg-surface-canvas border border-border-default rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && commentText.trim() && !isSubmittingComment) {
+                    setIsSubmittingComment(true);
+                    fetch(`/api/reports/${report.id}/comments`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ text: commentText, author: "Community Member" }),
+                    })
+                      .then((res) => res.json())
+                      .then(() => {
+                        setCommentText("");
+                        fetchReportDetails();
+                      })
+                      .finally(() => setIsSubmittingComment(false));
+                  }
+                }}
+              />
+              <button
+                disabled={!commentText.trim() || isSubmittingComment}
+                onClick={() => {
+                  if (commentText.trim() && !isSubmittingComment) {
+                    setIsSubmittingComment(true);
+                    fetch(`/api/reports/${report.id}/comments`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ text: commentText, author: "Community Member" }),
+                    })
+                      .then((res) => res.json())
+                      .then(() => {
+                        setCommentText("");
+                        fetchReportDetails();
+                      })
+                      .finally(() => setIsSubmittingComment(false));
+                  }
+                }}
+                className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+              >
+                Post
+              </button>
+            </div>
+          </section>
         </div>
 
         <div className="sticky bottom-0 bg-surface-canvas border-t border-border-default p-4 flex gap-3 shrink-0 z-20">
@@ -264,21 +339,33 @@ export default function ReportDetail({
             )}
           </button>
           <button
-            onClick={(e) => {
-              const el = e.currentTarget;
-              if (el.innerText.includes("Upvoted")) {
-                el.innerText = "Upvote";
-                el.classList.remove("bg-success", "hover:bg-success");
-                el.classList.add("bg-accent", "hover:bg-accent-hover");
-              } else {
-                el.innerText = "Upvoted!";
-                el.classList.remove("bg-accent", "hover:bg-accent-hover");
-                el.classList.add("bg-success", "hover:bg-success");
+            onClick={async (e) => {
+              if (isUpvoting) return;
+              setIsUpvoting(true);
+              const upvotedIds = JSON.parse(localStorage.getItem("upvoted_reports") || "[]");
+              const alreadyUpvoted = upvotedIds.includes(report.id);
+              
+              if (!alreadyUpvoted) {
+                try {
+                  await fetch(`/api/reports/${report.id}/upvote`, { method: "POST" });
+                  localStorage.setItem("upvoted_reports", JSON.stringify([...upvotedIds, report.id]));
+                  fetchReportDetails();
+                } catch (error) {
+                  console.error("Upvote failed", error);
+                }
               }
+              setIsUpvoting(false);
             }}
-            className="flex-1 bg-accent hover:bg-accent-hover text-white py-3 rounded-xl font-semibold transition-colors"
+            disabled={isUpvoting}
+            className={`flex-1 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${JSON.parse(localStorage.getItem("upvoted_reports") || "[]").includes(report.id) ? "bg-success hover:bg-success" : "bg-accent hover:bg-accent-hover"}`}
           >
-            Upvote
+            {JSON.parse(localStorage.getItem("upvoted_reports") || "[]").includes(report.id) ? (
+              <>
+                <Check size={18} /> Upvoted ({report.upvotes || 0})
+              </>
+            ) : (
+              `Upvote (${report.upvotes || 0})`
+            )}
           </button>
         </div>
       </div>
