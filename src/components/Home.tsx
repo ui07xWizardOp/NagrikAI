@@ -1,4 +1,4 @@
-import { Camera, MapPin, Navigation, Crosshair } from "lucide-react";
+import { Camera, MapPin, Navigation, Crosshair, Mic } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -29,7 +29,7 @@ function MapControls() {
             e.stopPropagation();
             map.zoomIn();
           }}
-          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors border-b border-border-default"
+          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors border-b border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
           aria-label="Zoom in"
         >
           <span className="text-xl font-medium leading-none">+</span>
@@ -39,7 +39,7 @@ function MapControls() {
             e.stopPropagation();
             map.zoomOut();
           }}
-          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors border-b border-border-default"
+          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors border-b border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
           aria-label="Zoom out"
         >
           <span className="text-xl font-medium leading-none">−</span>
@@ -50,7 +50,7 @@ function MapControls() {
             map.locate();
             map.setView([12.9716, 77.5946], 13);
           }}
-          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors"
+          className="p-2 md:p-3 text-text-primary hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
           aria-label="Locate me"
         >
           <Crosshair size={18} />
@@ -61,7 +61,7 @@ function MapControls() {
           e.stopPropagation();
           map.setView([12.975, 77.585], 15);
         }}
-        className="bg-surface-card/80 backdrop-blur-md border border-border-default p-2 md:p-3 rounded-xl shadow-sm text-text-primary hover:bg-surface-muted transition-colors"
+        className="bg-surface-card/80 backdrop-blur-md border border-border-default p-2 md:p-3 rounded-xl shadow-sm text-text-primary hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
         aria-label="Jump to Hotspot"
       >
         <MapPin size={18} />
@@ -177,13 +177,25 @@ export default function Home({
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             Detected Location
           </div>
-          <button
-            onClick={() => setView("capture")}
-            className="bg-accent hover:bg-accent-hover text-text-on-accent rounded-full p-6 shadow-xl shadow-accent/20 transition-transform active:scale-95 group flex flex-col items-center gap-2 border-4 border-surface-card pointer-events-auto"
-            aria-label="Report Issue"
-          >
-            <Camera className="w-8 h-8" />
-          </button>
+          
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setView("capture")}
+              className="bg-accent hover:bg-accent-hover text-text-on-accent rounded-full p-6 shadow-xl shadow-accent/20 transition-transform active:scale-95 group flex flex-col items-center justify-center border-4 border-surface-card pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-background"
+              aria-label="Report with Camera"
+            >
+              <Camera className="w-8 h-8" />
+            </button>
+            <button
+              onClick={() => setView("capture")}
+              className="bg-[#FFDAB9] hover:bg-[#FFCBA4] text-orange-900 rounded-full p-6 shadow-xl shadow-orange-500/20 transition-transform active:scale-95 group flex flex-col items-center justify-center border-4 border-surface-card pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-background"
+              aria-label="Report with Voice"
+              title="Voice Report"
+            >
+              <Mic className="w-8 h-8" />
+            </button>
+          </div>
+          
           <span className="mt-4 font-bold text-text-primary bg-surface-card/80 px-4 py-1 rounded-full backdrop-blur-sm border border-border-default shadow-sm uppercase tracking-wider text-sm pointer-events-auto">
             Report
           </span>
@@ -239,7 +251,7 @@ export default function Home({
 
           <button
             onClick={() => setView("dashboard")}
-            className="w-full text-center mt-4 text-xs font-semibold text-text-muted hover:text-accent transition-colors uppercase tracking-widest"
+            className="w-full text-center mt-4 text-xs font-semibold text-text-muted hover:text-accent transition-colors uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-sm"
           >
             View All Reports
           </button>

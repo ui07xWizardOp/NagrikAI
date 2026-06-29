@@ -22,10 +22,22 @@ Traditional civic grievance systems are opaque, slow, and frustrating. Citizens 
 
 NagrikAI is built as a full-stack JavaScript application:
 
-- **Frontend**: React 19, Vite, Tailwind CSS v4, Lucide Icons, Leaflet (React-Leaflet) for maps.
+- **Frontend**: React 19, Vite, Tailwind CSS v4, Lucide Icons, Leaflet (React-Leaflet) for maps (Planned migration to Google Maps Platform).
 - **Backend**: Express.js server bundled alongside the frontend in development (via `tsx`) and production (via `esbuild`).
-- **AI Integration**: `@google/genai` (Gemini SDK) powers the multi-agent system, utilizing `gemini-2.5-pro` for vision and `gemini-2.5-flash` for rapid reasoning tasks, along with `text-embedding-004` for duplicate detection.
-- **State & Data**: In-memory data structures serve as the persistence layer for the MVP, with vector similarity search for report deduplication.
+- **Persistence & Auth**: Firebase Authentication and Cloud Firestore for robust identity management and real-time database source of truth.
+- **AI Integration**: `@google/genai` (Gemini SDK) powers the multi-agent system, utilizing `gemini-2.5-pro` for vision and `gemini-2.5-flash` for rapid reasoning tasks, along with `text-embedding-004` for duplicate detection. (Future: Google Search Grounding for live civic news).
+- **State & Data**: React state coupled with REST API fetch hooks for dynamic UI updates, replacing static mocks.
+
+## Recent Implementation Phases Completed
+
+- **Phase 1: Persistence & Identity**: Wired real Firebase Auth. Replaced all mocked frontend local storage dependencies with live `fetch` calls to real backend endpoints (`/api/reports/me`, `/api/reports/pending-verification`).
+- **Phase 2: The Core AI Loop**: Removed frontend simulated `setTimeout` delays in report capturing. The `Capture.tsx` flow now directly posts to the AI orchestration pipeline and streams actual generative reasoning traces into the UI.
+- **Phase 3: Dashboard & Economics**: Implemented dynamic Karma scoring and SLA deadline calculation based on priority tiers within the `Agency.tsx` and `Dashboard.tsx` panels. Added CSV and JSON export features for Journalists.
+- **Phase 4: Design QA & Accessibility**: Polished ARIA live regions for AI logic readouts, updated semantic colors in `.dark` modes, and unified accessibility patterns.
+
+### Upcoming Roadmap
+- **Live Google Maps Integration**: Upgrading the map rendering engine to Google Maps Platform via `@vis.gl/react-google-maps` to take advantage of advanced markers, Places SDK routing, and live real-world data overlays.
+- **Recent News & Open Data Ingestion**: Utilizing Gemini Search Grounding tools to automatically fetch recent localized news about civic infrastructure breakdowns and correlate them with user-submitted reports for enhanced credibility and impact scoring.
 
 ## Documentation Index
 

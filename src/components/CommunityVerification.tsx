@@ -9,28 +9,21 @@ export default function CommunityVerification() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/reports")
+    fetch("/api/reports/pending-verification")
       .then((res) => res.json())
       .then((data) => {
-        const allReports: Report[] = data.reports || [];
-        const pending = allReports
-          .filter(
-            (r) =>
-              r.status === "Pending Verification" ||
-              (r.impactScore && r.impactScore < 70),
-          )
-          .map((r) => ({
-            id: r.id,
-            type: r.type,
-            location: r.location || r.ward,
-            description: r.description,
-            confidence: r.impactScore ? r.impactScore / 100 : 0.65,
-            distance: "Nearby",
-            image:
-              r.imageUrl ||
-              "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
-            status: "pending",
-          }));
+        const pending = (data.reports || []).map((r: Report) => ({
+          id: r.id,
+          type: r.type,
+          location: r.location || r.ward,
+          description: r.description,
+          confidence: r.impactScore ? r.impactScore / 100 : 0.65,
+          distance: "Nearby",
+          image:
+            r.imageUrl ||
+            "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
+          status: "pending",
+        }));
         setReports(pending);
       })
       .catch((err) => console.error("Failed to fetch reports:", err))

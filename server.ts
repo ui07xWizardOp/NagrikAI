@@ -1,8 +1,8 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
-import { reports, reportEmbeddings } from "./server/db";
+import { getReports, addReport, updateReport, upvoteReport, addComment } from "./server/firestore";
+import { reportEmbeddings } from "./server/db";
 import {
   runVisionAgent,
   runSeverityAgent,
@@ -11,6 +11,7 @@ import {
   runRepairAgent,
   runImpactAgent,
   runRoutingAgent,
+  runStoryAgent,
 } from "./server/agents";
 
 dotenv.config();
@@ -30,7 +31,7 @@ app.post("/api/report", async (req, res) => {
   };
 
   try {
-    const { imageBase64, imageBase64s, text, location, lat, lng } = req.body;
+    const { imageBase64, imageBase64s, text, location, lat, lng, userId } = req.body;
     const images = imageBase64s || (imageBase64 ? [imageBase64] : []);
     const mainImage = images[0];
 
@@ -191,6 +192,7 @@ app.post("/api/report", async (req, res) => {
     // Save
     const newReport = {
       id: Date.now().toString(),
+      userId: userId || null,
       type: visionOutput.issueType,
       category: visionOutput.category || "Other",
       description: visionOutput.description,
@@ -218,7 +220,7 @@ app.post("/api/report", async (req, res) => {
       impactScore,
     };
 
-    reports.unshift(newReport);
+    await addReport(newReport);
     if (verifyOutput.vector) {
       reportEmbeddings.push({ id: newReport.id, vector: verifyOutput.vector });
     }
@@ -235,56 +237,112 @@ app.post("/api/report", async (req, res) => {
   }
 });
 
-app.get("/api/reports", (req, res) => {
-  res.json({ reports });
+app.get("/api/reports", async (req, res) => {
+  try {
+    const reports = await getReports();
+    res.json({ reports });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ reports: [] });
+  }
 });
 
-app.patch("/api/reports/:id", (req, res) => {
+app.get("/api/reports/me", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ reports: [] });
+    }
+    const reports = await getReports();
+    const myReports = reports.filter(r => r.userId === userId);
+    res.json({ reports: myReports });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ reports: [] });
+  }
+});
+
+app.get("/api/reports/pending-verification", async (req, res) => {
+  try {
+    const reports = await getReports();
+    const pending = reports.filter(r => r.status === "Pending Verification" || (r.impactScore && r.impactScore < 70));
+    res.json({ reports: pending });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ reports: [] });
+  }
+});
+
+app.patch("/api/reports/:id", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  const report = reports.find((r) => r.id === id);
-  if (report) {
-    if (status) report.status = status;
-    res.json({ success: true, report });
-  } else {
-    res.status(404).json({ success: false, message: "Not found" });
+  try {
+    if (status) {
+      const updateData: any = { status };
+      if (status.includes("Resolved")) {
+        updateData.resolutionDate = new Date().toISOString();
+      }
+      await updateReport(id, updateData);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error" });
   }
 });
 
-app.post("/api/reports/:id/upvote", (req, res) => {
+app.post("/api/reports/:id/upvote", async (req, res) => {
   const { id } = req.params;
-  const report = reports.find((r) => r.id === id);
-  if (report) {
-    report.upvotes = (report.upvotes || 0) + 1;
-    res.json({ success: true, upvotes: report.upvotes });
-  } else {
-    res.status(404).json({ success: false, message: "Not found" });
+  try {
+    const upvotes = await upvoteReport(id);
+    if (upvotes !== null) {
+      res.json({ success: true, upvotes });
+    } else {
+      res.status(404).json({ success: false, message: "Not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error" });
   }
 });
 
-app.post("/api/reports/:id/comments", (req, res) => {
+app.post("/api/reports/:id/comments", async (req, res) => {
   const { id } = req.params;
   const { text, author } = req.body;
-  const report = reports.find((r) => r.id === id);
-  if (report) {
-    if (!report.comments) {
-      report.comments = [];
+  
+  const newComment = {
+    id: Date.now().toString(),
+    author: author || "Anonymous Citizen",
+    text,
+    date: new Date().toISOString(),
+  };
+
+  try {
+    const comment = await addComment(id, newComment);
+    if (comment) {
+      res.json({ success: true, comment });
+    } else {
+      res.status(404).json({ success: false, message: "Not found" });
     }
-    const newComment = {
-      id: Date.now().toString(),
-      author: author || "Anonymous Citizen",
-      text,
-      date: new Date().toISOString(),
-    };
-    report.comments.push(newComment);
-    res.json({ success: true, comment: newComment });
-  } else {
-    res.status(404).json({ success: false, message: "Not found" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error" });
+  }
+});
+
+app.get("/api/leads", async (req, res) => {
+  try {
+    const reports = await getReports();
+    // take the most recent 50 reports
+    const recentReports = reports.slice(0, 50);
+    const leads = await runStoryAgent(recentReports);
+    res.json({ leads });
+  } catch (error) {
+    console.error("Error generating story leads", error);
+    res.status(500).json({ leads: [] });
   }
 });
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

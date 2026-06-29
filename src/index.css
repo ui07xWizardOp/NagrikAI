@@ -430,6 +430,42 @@
       --shadow-4: 0 8px 32px rgba(0,0,0,0.6);
       --shadow-5: 0 12px 40px rgba(0,0,0,0.7);
 
+      --color-agent-1: var(--agent-1-light);
+      --color-agent-1-light: var(--agent-1);
+      --color-agent-1-bg: rgba(148, 163, 184, 0.15);
+
+      --color-agent-2: var(--agent-2-light);
+      --color-agent-2-light: var(--agent-2);
+      --color-agent-2-bg: rgba(129, 140, 248, 0.15);
+
+      --color-agent-3: var(--agent-3-light);
+      --color-agent-3-light: var(--agent-3);
+      --color-agent-3-bg: rgba(251, 191, 36, 0.15);
+
+      --color-agent-4: var(--agent-4-light);
+      --color-agent-4-light: var(--agent-4);
+      --color-agent-4-bg: rgba(56, 189, 248, 0.15);
+
+      --color-agent-5: var(--agent-5-light);
+      --color-agent-5-light: var(--agent-5);
+      --color-agent-5-bg: rgba(167, 139, 250, 0.15);
+
+      --color-agent-6: var(--agent-6-light);
+      --color-agent-6-light: var(--agent-6);
+      --color-agent-6-bg: rgba(196, 181, 253, 0.15);
+
+      --color-agent-7: var(--agent-7-light);
+      --color-agent-7-light: var(--agent-7);
+      --color-agent-7-bg: rgba(52, 211, 153, 0.15);
+
+      --color-agent-8: var(--agent-8-light);
+      --color-agent-8-light: var(--agent-8);
+      --color-agent-8-bg: rgba(251, 146, 60, 0.15);
+
+      --color-agent-9: var(--agent-9-light);
+      --color-agent-9-light: var(--agent-9);
+      --color-agent-9-bg: rgba(248, 113, 113, 0.15);
+
       --glass-bg: rgba(20, 26, 33, 0.72);
       --glass-border: rgba(255, 255, 255, 0.06);
   }
@@ -507,6 +543,42 @@
       --shadow-3: 0 4px 16px rgba(0,0,0,0.5);
       --shadow-4: 0 8px 32px rgba(0,0,0,0.6);
       --shadow-5: 0 12px 40px rgba(0,0,0,0.7);
+
+      --color-agent-1: var(--agent-1-light);
+      --color-agent-1-light: var(--agent-1);
+      --color-agent-1-bg: rgba(148, 163, 184, 0.15);
+
+      --color-agent-2: var(--agent-2-light);
+      --color-agent-2-light: var(--agent-2);
+      --color-agent-2-bg: rgba(129, 140, 248, 0.15);
+
+      --color-agent-3: var(--agent-3-light);
+      --color-agent-3-light: var(--agent-3);
+      --color-agent-3-bg: rgba(251, 191, 36, 0.15);
+
+      --color-agent-4: var(--agent-4-light);
+      --color-agent-4-light: var(--agent-4);
+      --color-agent-4-bg: rgba(56, 189, 248, 0.15);
+
+      --color-agent-5: var(--agent-5-light);
+      --color-agent-5-light: var(--agent-5);
+      --color-agent-5-bg: rgba(167, 139, 250, 0.15);
+
+      --color-agent-6: var(--agent-6-light);
+      --color-agent-6-light: var(--agent-6);
+      --color-agent-6-bg: rgba(196, 181, 253, 0.15);
+
+      --color-agent-7: var(--agent-7-light);
+      --color-agent-7-light: var(--agent-7);
+      --color-agent-7-bg: rgba(52, 211, 153, 0.15);
+
+      --color-agent-8: var(--agent-8-light);
+      --color-agent-8-light: var(--agent-8);
+      --color-agent-8-bg: rgba(251, 146, 60, 0.15);
+
+      --color-agent-9: var(--agent-9-light);
+      --color-agent-9-light: var(--agent-9);
+      --color-agent-9-bg: rgba(248, 113, 113, 0.15);
 
       --glass-bg: rgba(20, 26, 33, 0.72);
       --glass-border: rgba(255, 255, 255, 0.06);

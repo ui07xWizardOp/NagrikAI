@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Trophy, ShieldCheck, Flame, Star } from "lucide-react";
 import { Report } from "../types";
+import { getAuth } from "firebase/auth";
 
 export default function Karma() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -10,17 +11,18 @@ export default function Karma() {
   const [resolvedCount, setResolvedCount] = useState(0);
 
   useEffect(() => {
-    fetch("/api/reports")
+    const auth = getAuth();
+    const userId = auth.currentUser?.uid;
+    const endpoint = userId ? `/api/reports/me?userId=${userId}` : '/api/reports';
+
+    fetch(endpoint)
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const text = await r.text();
         try {
           return JSON.parse(text);
         } catch (e) {
-          console.error(
-            "Failed to parse JSON in Karma:",
-            text.substring(0, 50),
-          );
+          console.error("Failed to parse JSON in Karma:", text.substring(0, 50));
           return { reports: [] };
         }
       })
@@ -37,19 +39,14 @@ export default function Karma() {
           const myReports: string[] = JSON.parse(
             localStorage.getItem("my_reports") || "[]",
           );
-          const myComments: string[] = JSON.parse(
-            localStorage.getItem("my_comments") || "[]",
-          );
-
+          
+          // Since we fetch /api/reports/me, data.reports contains only the user's reports
+          // For legacy users without userId, fallback to myReports
           data.reports.forEach((r: Report) => {
-            if (r.status.includes("Resolved")) {
-              if (myReports.includes(r.id)) {
+            if (r.status.includes("Resolved") || r.status === "Fixed") {
+              if (userId || myReports.includes(r.id)) {
                 karma += 100;
                 trust = Math.min(100, trust + 2);
-                resolved += 1;
-              } else if (myComments.includes(r.id)) {
-                karma += 50;
-                trust = Math.min(100, trust + 1);
                 resolved += 1;
               }
             }
@@ -59,7 +56,7 @@ export default function Karma() {
           if (resolved >= 5) badges.add("Civic Hero");
           if (resolved >= 10) badges.add("City Champion");
           if (karma >= 1000) badges.add("Top Contributor");
-          if (myReports.length >= 3) badges.add("Active Citizen");
+          if ((userId ? data.reports.length : myReports.length) >= 3) badges.add("Active Citizen");
         } catch (e) {
           console.error(e);
         }

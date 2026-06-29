@@ -51,16 +51,80 @@ export default function Analytics() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 7); // top 7 wards
 
-  // Calculate resolution time (mocking dates since we only have creation date)
-  const resolutionData = [
-    { name: "Mon", time: 4.2 },
-    { name: "Tue", time: 3.8 },
-    { name: "Wed", time: 4.5 },
-    { name: "Thu", time: 3.1 },
-    { name: "Fri", time: 2.8 },
-    { name: "Sat", time: 2.4 },
-    { name: "Sun", time: 2.1 },
-  ];
+  // Calculate resolution time (trend by day of week)
+  const resolutionMap: Record<string, { totalTime: number; count: number }> = {
+    Sun: { totalTime: 0, count: 0 },
+    Mon: { totalTime: 0, count: 0 },
+    Tue: { totalTime: 0, count: 0 },
+    Wed: { totalTime: 0, count: 0 },
+    Thu: { totalTime: 0, count: 0 },
+    Fri: { totalTime: 0, count: 0 },
+    Sat: { totalTime: 0, count: 0 },
+  };
+
+  reports.forEach((r) => {
+    if (r.status.includes("Resolved") && r.date) {
+      const start = new Date(r.date);
+      const end = r.resolutionDate
+        ? new Date(r.resolutionDate as string)
+        : new Date();
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24);
+
+      const dayName = start.toLocaleDateString("en-US", { weekday: "short" });
+      if (resolutionMap[dayName]) {
+        resolutionMap[dayName].totalTime += diffDays;
+        resolutionMap[dayName].count += 1;
+      }
+    }
+  });
+
+  const resolutionData = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+    (day) => ({
+      name: day,
+      time:
+        resolutionMap[day].count > 0
+          ? Number(
+              (resolutionMap[day].totalTime / resolutionMap[day].count).toFixed(
+                1,
+              ),
+            )
+          : 0,
+    }),
+  );
+
+  const totalResolvedCount = resolvedReports.length;
+  const totalResolutionTime = resolvedReports.reduce((acc, r) => {
+    const start = new Date(r.date);
+    const end = r.resolutionDate
+      ? new Date(r.resolutionDate as string)
+      : new Date();
+    return acc + (end.getTime() - start.getTime()) / (1000 * 3600 * 24);
+  }, 0);
+  const avgResolutionTime =
+    totalResolvedCount > 0
+      ? (totalResolutionTime / totalResolvedCount).toFixed(1)
+      : "0.0";
+
+  // Compute City Health Score
+  // Base 100, subtract 2 for each pending report, add 1 for each resolved
+  const cityHealthScore = Math.max(
+    0,
+    Math.min(100, 100 - pendingReports.length * 2 + resolvedReports.length * 1),
+  );
+  const healthStatus =
+    cityHealthScore >= 80
+      ? "Excellent"
+      : cityHealthScore >= 60
+        ? "Good"
+        : cityHealthScore >= 40
+          ? "Fair"
+          : "Poor";
+  const healthColor =
+    cityHealthScore >= 60
+      ? "var(--success)"
+      : cityHealthScore >= 40
+        ? "var(--warning)"
+        : "var(--danger)";
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -91,7 +155,9 @@ export default function Analytics() {
             Avg Resolution Time
           </h3>
           <div className="flex items-end gap-3 relative z-10">
-            <span className="text-4xl font-black text-text-primary">2.4</span>
+            <span className="text-4xl font-black text-text-primary">
+              {avgResolutionTime}
+            </span>
             <span className="text-lg text-text-muted font-medium mb-1">
               days
             </span>

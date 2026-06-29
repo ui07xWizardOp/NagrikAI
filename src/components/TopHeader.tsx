@@ -68,7 +68,7 @@ export default function TopHeader({
         <ThemeToggle />
         <button
           onClick={() => setView("alerts")}
-          className="relative text-text-muted hover:text-text-primary transition-colors shrink-0"
+          className="relative text-text-muted hover:text-text-primary transition-all active:scale-95 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-card rounded-md"
         >
           <Bell className="w-5 h-5" />
           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-danger rounded-full border-2 border-surface-card" />
@@ -76,7 +76,8 @@ export default function TopHeader({
 
         <div
           onClick={() => setView("profile")}
-          className="flex items-center gap-2 cursor-pointer hover:bg-surface-muted p-1.5 rounded-lg transition-colors shrink-0"
+          className="flex items-center gap-2 cursor-pointer hover:bg-surface-muted p-1.5 rounded-lg transition-all active:scale-95 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          tabIndex={0}
         >
           <img
             src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan"

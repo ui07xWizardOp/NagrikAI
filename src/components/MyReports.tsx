@@ -4,6 +4,7 @@ import { IssueCard, IssueReport } from "./ui/IssueCard";
 import { EmptyState } from "./ui/StateComponents";
 import { FileText, Loader2 } from "lucide-react";
 import { Report } from "../types";
+import { getAuth } from "firebase/auth";
 
 export default function MyReports({
   setView,
@@ -26,18 +27,20 @@ export default function MyReports({
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/reports")
+    const auth = getAuth();
+    const userId = auth.currentUser?.uid;
+    
+    // Fallback to local storage if not logged in just in case
+    const endpoint = userId ? `/api/reports/me?userId=${userId}` : '/api/reports';
+
+    fetch(endpoint)
       .then((res) => res.json())
       .then((data) => {
         const allReports: Report[] = data.reports || [];
-        const myReportIds = JSON.parse(
-          localStorage.getItem("my_reports") || "[]",
-        );
-
-        // Map backend report format to IssueReport format expected by IssueCard
-        const mappedReports = allReports
-          .filter((r) => myReportIds.includes(r.id))
-          .map((r): IssueReport => ({
+        
+        let mappedReports: IssueReport[] = [];
+        if (userId) {
+          mappedReports = allReports.map((r): IssueReport => ({
             id: r.id,
             issueType: r.type,
             wardName: r.ward || "Unknown Ward",
@@ -54,6 +57,31 @@ export default function MyReports({
               r.imageUrl ||
               "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
           }));
+        } else {
+          // Legacy logic for non-logged in testing
+          const myReportIds = JSON.parse(
+            localStorage.getItem("my_reports") || "[]",
+          );
+          mappedReports = allReports
+            .filter((r) => myReportIds.includes(r.id))
+            .map((r): IssueReport => ({
+              id: r.id,
+              issueType: r.type,
+              wardName: r.ward || "Unknown Ward",
+              createdAt: r.date,
+              status: r.status.includes("Resolved")
+                ? "fixed"
+                : r.status.includes("Progress")
+                  ? "progress"
+                  : "new",
+              severity: (r.severity as 1 | 2 | 3 | 4 | 5) || 1,
+              aiConfidence: r.impactScore ? r.impactScore / 100 : 0.85,
+              description: r.description,
+              image:
+                r.imageUrl ||
+                "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
+            }));
+        }
 
         setReports(mappedReports);
       })

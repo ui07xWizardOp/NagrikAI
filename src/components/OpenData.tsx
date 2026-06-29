@@ -8,15 +8,28 @@ import {
   Check,
   AlertCircle,
   X,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function OpenData() {
   const [copied, setCopied] = useState(false);
   const [toasts, setToasts] = useState<
     { id: number; message: string; type: "success" | "info" }[]
   >([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(true);
   const apiKey = "nk_live_7x89f...a1b2";
+
+  useEffect(() => {
+    fetch("/api/leads")
+      .then((res) => res.json())
+      .then((data) => {
+        setLeads(data.leads || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingLeads(false));
+  }, []);
 
   const addToast = (message: string, type: "success" | "info" = "info") => {
     const id = Date.now();
@@ -75,18 +88,44 @@ export default function OpenData() {
         </div>
         <div className="hidden md:flex items-center gap-3">
           <button
-            onClick={() =>
-              addToast("Preparing CSV export... this may take a moment", "info")
-            }
+            onClick={() => {
+              if (leads.length === 0) {
+                addToast("No data available to export", "info");
+                return;
+              }
+              const headers = ["ID", "Type", "Location", "Severity", "ImpactScore", "Status", "Date"];
+              const csvContent = "data:text/csv;charset=utf-8," 
+                + headers.join(",") + "\n"
+                + leads.map(l => `${l.id},"${l.type}","${l.location}",${l.severity},${l.impactScore},"${l.status}","${l.date}"`).join("\n");
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", `nagrik_ai_export_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              addToast("CSV export downloaded successfully", "success");
+            }}
             className="px-4 py-2 bg-surface-card border border-border-default hover:bg-surface-muted text-text-primary rounded-xl font-medium transition-colors flex items-center gap-2"
           >
             <Download size={18} />
             CSV Export
           </button>
           <button
-            onClick={() =>
-              addToast("Preparing JSON dump... this may take a moment", "info")
-            }
+            onClick={() => {
+              if (leads.length === 0) {
+                addToast("No data available to export", "info");
+                return;
+              }
+              const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(leads, null, 2));
+              const link = document.createElement("a");
+              link.setAttribute("href", dataStr);
+              link.setAttribute("download", `nagrik_ai_export_${new Date().toISOString().split('T')[0]}.json`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              addToast("JSON dump downloaded successfully", "success");
+            }}
             className="px-4 py-2 bg-surface-card border border-border-default hover:bg-surface-muted text-text-primary rounded-xl font-medium transition-colors flex items-center gap-2"
           >
             <Database size={18} />
@@ -202,57 +241,50 @@ export default function OpenData() {
             </div>
 
             <div className="space-y-4">
-              {/* Lead 1 */}
-              <div className="p-4 rounded-xl border border-warning/20 bg-warning-subtle relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
-                <h3 className="text-sm font-semibold text-text-primary mb-2">
-                  Unusual Water Logging Spike
-                </h3>
-                <p className="text-xs text-text-secondary leading-relaxed mb-3">
-                  Detected a 400% increase in water logging reports in Bellandur
-                  area over the last 12 hours despite no heavy rainfall.
-                  Possible major pipe burst.
-                </p>
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-warning/10">
-                  <span className="text-xxs font-mono text-text-muted">
-                    CONFIDENCE 94%
-                  </span>
-                  <button
-                    onClick={() =>
-                      addToast("Loading detailed anomaly report...", "info")
-                    }
-                    className="text-xs text-warning hover:underline font-medium"
-                  >
-                    Investigate →
-                  </button>
+              {loadingLeads ? (
+                <div className="p-8 flex flex-col items-center justify-center text-text-muted">
+                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-accent" />
+                  <p className="text-sm font-medium">
+                    Generating live leads...
+                  </p>
                 </div>
-              </div>
-
-              {/* Lead 2 */}
-              <div className="p-4 rounded-xl border border-border-default bg-surface-canvas relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
-                <h3 className="text-sm font-semibold text-text-primary mb-2">
-                  SLA Breach Trend
-                </h3>
-                <p className="text-xs text-text-secondary leading-relaxed mb-3">
-                  Streetlight repair SLA breaches have systematically increased
-                  in Ward 42 over the past 3 weeks, correlating with contractor
-                  change.
-                </p>
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle">
-                  <span className="text-xxs font-mono text-text-muted">
-                    CONFIDENCE 88%
-                  </span>
-                  <button
-                    onClick={() =>
-                      addToast("Loading detailed SLA report...", "info")
-                    }
-                    className="text-xs text-accent hover:underline font-medium"
-                  >
-                    Investigate →
-                  </button>
+              ) : leads.length === 0 ? (
+                <div className="p-4 text-center text-text-muted text-sm border border-border-default rounded-xl">
+                  No anomalies detected currently.
                 </div>
-              </div>
+              ) : (
+                leads.map((lead, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-xl border ${lead.theme === "warning" ? "border-warning/20 bg-warning-subtle" : "border-border-default bg-surface-canvas"} relative overflow-hidden group`}
+                  >
+                    <div
+                      className={`absolute top-0 left-0 w-1 h-full ${lead.theme === "warning" ? "bg-warning" : "bg-accent"}`}
+                    />
+                    <h3 className="text-sm font-semibold text-text-primary mb-2">
+                      {lead.title}
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed mb-3">
+                      {lead.description}
+                    </p>
+                    <div
+                      className={`flex items-center justify-between mt-2 pt-2 border-t ${lead.theme === "warning" ? "border-warning/10" : "border-border-subtle"}`}
+                    >
+                      <span className="text-xxs font-mono text-text-muted">
+                        CONFIDENCE {lead.confidence}%
+                      </span>
+                      <button
+                        onClick={() =>
+                          addToast("Loading detailed report...", "info")
+                        }
+                        className={`text-xs font-medium hover:underline ${lead.theme === "warning" ? "text-warning" : "text-accent"}`}
+                      >
+                        Investigate →
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

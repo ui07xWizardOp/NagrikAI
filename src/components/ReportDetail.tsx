@@ -257,19 +257,28 @@ export default function ReportDetail({
             </h3>
             <div className="space-y-3">
               {report.comments?.map((comment) => (
-                <div key={comment.id} className="bg-surface-muted p-4 rounded-xl border border-border-default">
+                <div
+                  key={comment.id}
+                  className="bg-surface-muted p-4 rounded-xl border border-border-default"
+                >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-sm text-text-primary">{comment.author}</span>
-                    <span className="text-xs text-text-muted">{new Date(comment.date).toLocaleDateString()}</span>
+                    <span className="font-semibold text-sm text-text-primary">
+                      {comment.author}
+                    </span>
+                    <span className="text-xs text-text-muted">
+                      {new Date(comment.date).toLocaleDateString()}
+                    </span>
                   </div>
                   <p className="text-sm text-text-secondary">{comment.text}</p>
                 </div>
               ))}
               {(!report.comments || report.comments.length === 0) && (
-                <p className="text-sm text-text-muted italic">No comments yet. Be the first to add context.</p>
+                <p className="text-sm text-text-muted italic">
+                  No comments yet. Be the first to add context.
+                </p>
               )}
             </div>
-            
+
             <div className="mt-4 flex gap-2">
               <input
                 type="text"
@@ -278,12 +287,19 @@ export default function ReportDetail({
                 onChange={(e) => setCommentText(e.target.value)}
                 className="flex-1 bg-surface-canvas border border-border-default rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && commentText.trim() && !isSubmittingComment) {
+                  if (
+                    e.key === "Enter" &&
+                    commentText.trim() &&
+                    !isSubmittingComment
+                  ) {
                     setIsSubmittingComment(true);
                     fetch(`/api/reports/${report.id}/comments`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ text: commentText, author: "Community Member" }),
+                      body: JSON.stringify({
+                        text: commentText,
+                        author: "Community Member",
+                      }),
                     })
                       .then((res) => res.json())
                       .then(() => {
@@ -302,7 +318,10 @@ export default function ReportDetail({
                     fetch(`/api/reports/${report.id}/comments`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ text: commentText, author: "Community Member" }),
+                      body: JSON.stringify({
+                        text: commentText,
+                        author: "Community Member",
+                      }),
                     })
                       .then((res) => res.json())
                       .then(() => {
@@ -342,13 +361,20 @@ export default function ReportDetail({
             onClick={async (e) => {
               if (isUpvoting) return;
               setIsUpvoting(true);
-              const upvotedIds = JSON.parse(localStorage.getItem("upvoted_reports") || "[]");
+              const upvotedIds = JSON.parse(
+                localStorage.getItem("upvoted_reports") || "[]",
+              );
               const alreadyUpvoted = upvotedIds.includes(report.id);
-              
+
               if (!alreadyUpvoted) {
                 try {
-                  await fetch(`/api/reports/${report.id}/upvote`, { method: "POST" });
-                  localStorage.setItem("upvoted_reports", JSON.stringify([...upvotedIds, report.id]));
+                  await fetch(`/api/reports/${report.id}/upvote`, {
+                    method: "POST",
+                  });
+                  localStorage.setItem(
+                    "upvoted_reports",
+                    JSON.stringify([...upvotedIds, report.id]),
+                  );
                   fetchReportDetails();
                 } catch (error) {
                   console.error("Upvote failed", error);
@@ -359,7 +385,9 @@ export default function ReportDetail({
             disabled={isUpvoting}
             className={`flex-1 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${JSON.parse(localStorage.getItem("upvoted_reports") || "[]").includes(report.id) ? "bg-success hover:bg-success" : "bg-accent hover:bg-accent-hover"}`}
           >
-            {JSON.parse(localStorage.getItem("upvoted_reports") || "[]").includes(report.id) ? (
+            {JSON.parse(
+              localStorage.getItem("upvoted_reports") || "[]",
+            ).includes(report.id) ? (
               <>
                 <Check size={18} /> Upvoted ({report.upvotes || 0})
               </>

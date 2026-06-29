@@ -216,6 +216,40 @@ Return JSON exactly like this with no markdown wrapping:
   };
 }
 
+export async function runStoryAgent(reports: any[]) {
+  const genai = getAI();
+  if (!genai) throw new Error("Gemini API key not configured");
+
+  const prompt = `You are the AI Story Lead Agent for NagrikAI. You analyze recent civic reports to find anomalies and generate journalistic leads.
+Reports (last 50): ${JSON.stringify(reports.map(r => ({ type: r.type, ward: r.ward, severity: r.severity, status: r.status })))}
+
+Find 2 interesting anomalies or patterns in this data that a journalist would want to investigate. If there isn't enough data, generate realistic plausible leads based on typical urban patterns.
+Return JSON EXACTLY like this with no markdown wrapping:
+[
+  {
+    "title": "Unusual Water Logging Spike",
+    "description": "Detected a 400% increase in water logging reports in Bellandur...",
+    "confidence": 94,
+    "theme": "warning"
+  },
+  {
+    "title": "SLA Breach Trend",
+    "description": "Streetlight repair SLA breaches have systematically increased...",
+    "confidence": 88,
+    "theme": "accent"
+  }
+]
+`;
+
+  const response = await genai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  });
+
+  const match = response.text?.match(/\[[\s\S]*\]/);
+  if (match) return JSON.parse(match[0]);
+  return [];
+}
 export async function runRepairAgent(
   issueType: string,
   areaM2: number,

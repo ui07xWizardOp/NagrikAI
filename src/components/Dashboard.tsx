@@ -468,6 +468,27 @@ export default function Dashboard({
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
+  const pendingReports = reports.filter((r) => !r.status.includes("Resolved"));
+  const resolvedReports = reports.filter((r) => r.status.includes("Resolved"));
+  const cityHealthScore = Math.max(
+    0,
+    Math.min(100, 100 - pendingReports.length * 2 + resolvedReports.length * 1),
+  );
+  const healthStatus =
+    cityHealthScore >= 80
+      ? "Excellent"
+      : cityHealthScore >= 60
+        ? "Good"
+        : cityHealthScore >= 40
+          ? "Fair"
+          : "Poor";
+  const healthColor =
+    cityHealthScore >= 60
+      ? "var(--success)"
+      : cityHealthScore >= 40
+        ? "var(--warning)"
+        : "var(--danger)";
+
   return (
     <div className="space-y-8 py-8 relative">
       {/* Toast Alerts */}
@@ -676,24 +697,26 @@ export default function Dashboard({
                     cy="48"
                     r="40"
                     fill="transparent"
-                    stroke="var(--success)"
+                    stroke={healthColor}
                     strokeWidth="8"
                     strokeDasharray="251.2"
-                    strokeDashoffset="55.2"
+                    strokeDashoffset={251.2 - (251.2 * cityHealthScore) / 100}
                     className="transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-2xl font-black text-text-primary">
-                    78
+                    {cityHealthScore}
                   </span>
                   <span className="text-xxs font-semibold text-text-muted">
                     /100
                   </span>
                 </div>
               </div>
-              <div className="text-success font-semibold text-xs mt-2">
-                Good
+              <div
+                className={`font-semibold text-xs mt-2 ${cityHealthScore >= 60 ? "text-success" : cityHealthScore >= 40 ? "text-warning" : "text-danger"}`}
+              >
+                {healthStatus}
               </div>
             </div>
 
@@ -785,7 +808,7 @@ export default function Dashboard({
                   Total Reports
                 </div>
                 <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-2 text-text-primary">
-                  {reports.length || "12,842"}
+                  {reports.length}
                 </div>
                 <div className="text-success text-xxs sm:text-xs font-semibold">
                   +18% this week
@@ -798,9 +821,11 @@ export default function Dashboard({
                   Resolved
                 </div>
                 <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-2 text-text-primary">
-                  {reports.filter(
-                    (r) => r.status === "Resolved" || r.status === "Fixed",
-                  ).length || "8,023"}
+                  {
+                    reports.filter(
+                      (r) => r.status === "Resolved" || r.status === "Fixed",
+                    ).length
+                  }
                 </div>
                 <div className="text-success text-xxs sm:text-xs font-semibold">
                   +24% this week
@@ -813,8 +838,13 @@ export default function Dashboard({
                   In Progress
                 </div>
                 <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-2 text-text-primary">
-                  {reports.filter((r) => r.status === "In Progress").length ||
-                    "3,214"}
+                  {
+                    reports.filter(
+                      (r) =>
+                        r.status === "In Progress" ||
+                        r.status.includes("Routed"),
+                    ).length
+                  }
                 </div>
                 <div className="text-warning text-xxs sm:text-xs font-semibold">
                   +5% this week

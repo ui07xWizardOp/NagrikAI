@@ -6,6 +6,17 @@ export default function Agency() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Calculate total breached
+  const now = Date.now();
+  const totalBreached = reports.filter((report) => {
+    let slaDeadlineTime = report.slaDeadline ? new Date(report.slaDeadline).getTime() : 0;
+    if (!slaDeadlineTime) {
+      const slaHours = report.severity === 5 ? 24 : report.severity === 4 ? 48 : report.severity === 3 ? 168 : 336;
+      slaDeadlineTime = new Date(report.date).getTime() + (slaHours * 60 * 60 * 1000);
+    }
+    return now > slaDeadlineTime;
+  }).length;
+
   useEffect(() => {
     fetch("/api/reports")
       .then(async (r) => {
@@ -75,7 +86,7 @@ export default function Agency() {
             <span className="text-xxs text-danger uppercase tracking-widest mb-1">
               SLA Breached
             </span>
-            <span className="text-xl font-black text-danger">12</span>
+            <span className="text-xl font-black text-danger">{totalBreached}</span>
           </div>
         </div>
       </div>
@@ -87,7 +98,17 @@ export default function Agency() {
           </div>
         )}
         {reports.map((report) => {
-          const isBreached = report.severity >= 4; // Mock logic for SLA breach
+          let slaDeadlineTime = report.slaDeadline ? new Date(report.slaDeadline).getTime() : 0;
+          if (!slaDeadlineTime) {
+            // fallback estimation
+            const slaHours = report.severity === 5 ? 24 : report.severity === 4 ? 48 : report.severity === 3 ? 168 : 336;
+            slaDeadlineTime = new Date(report.date).getTime() + (slaHours * 60 * 60 * 1000);
+          }
+          
+          const now = Date.now();
+          const isBreached = now > slaDeadlineTime;
+          const remainingMs = isBreached ? (now - slaDeadlineTime) : (slaDeadlineTime - now);
+          const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
 
           return (
             <div
@@ -132,11 +153,11 @@ export default function Agency() {
               <div className="flex md:flex-col items-center md:items-end gap-4 border-t md:border-t-0 border-border-subtle pt-4 md:pt-0 shrink-0">
                 {isBreached ? (
                   <div className="flex items-center gap-2 text-danger bg-danger/10 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest">
-                    <AlertTriangle size={14} /> SLA Breached
+                    <AlertTriangle size={14} /> SLA Breached by {remainingHours}h
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-success bg-success/10 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest">
-                    <Clock size={14} /> 48h Remaining
+                    <Clock size={14} /> {remainingHours}h Remaining
                   </div>
                 )}
 

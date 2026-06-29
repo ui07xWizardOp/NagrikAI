@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { Report } from "../types";
+import { getAuth } from "firebase/auth";
 
 export default function Capture({
   setView,
@@ -172,10 +173,14 @@ export default function Capture({
     setLogs([]);
 
     try {
+      const auth = getAuth();
+      const userId = auth.currentUser?.uid;
+
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId,
           imageBase64s: images,
           text,
           location,
@@ -183,24 +188,24 @@ export default function Capture({
             location.includes(",") && !isNaN(parseFloat(location.split(",")[0]))
               ? parseFloat(location.split(",")[0])
               : window.navigator.geolocation
-              ? await new Promise((resolve) => {
-                  window.navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve(pos.coords.latitude),
-                    () => resolve(12.9784 + (Math.random() - 0.5) * 0.01)
-                  );
-                })
-              : 12.9784 + (Math.random() - 0.5) * 0.01,
+                ? await new Promise((resolve) => {
+                    window.navigator.geolocation.getCurrentPosition(
+                      (pos) => resolve(pos.coords.latitude),
+                      () => resolve(12.9784 + (Math.random() - 0.5) * 0.01),
+                    );
+                  })
+                : 12.9784 + (Math.random() - 0.5) * 0.01,
           lng:
             location.includes(",") && !isNaN(parseFloat(location.split(",")[1]))
               ? parseFloat(location.split(",")[1])
               : window.navigator.geolocation
-              ? await new Promise((resolve) => {
-                  window.navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve(pos.coords.longitude),
-                    () => resolve(77.6408 + (Math.random() - 0.5) * 0.01)
-                  );
-                })
-              : 77.6408 + (Math.random() - 0.5) * 0.01,
+                ? await new Promise((resolve) => {
+                    window.navigator.geolocation.getCurrentPosition(
+                      (pos) => resolve(pos.coords.longitude),
+                      () => resolve(77.6408 + (Math.random() - 0.5) * 0.01),
+                    );
+                  })
+                : 77.6408 + (Math.random() - 0.5) * 0.01,
         }),
       });
 
@@ -482,7 +487,11 @@ export default function Capture({
             </div>
           </div>
 
-          <div className="bg-surface-card p-6 rounded-lg border border-border-subtle space-y-4">
+          <div 
+            className="bg-surface-card p-6 rounded-lg border border-border-subtle space-y-4"
+            aria-live="polite"
+            aria-atomic="false"
+          >
             <h3 className="text-xxs font-bold text-text-subtle uppercase tracking-widest mb-4">
               Live Agent Logic
             </h3>

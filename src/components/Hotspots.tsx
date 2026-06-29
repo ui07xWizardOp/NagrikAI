@@ -93,7 +93,9 @@ export default function Hotspots() {
               const lat = report.lat || 12.9716;
               const lng = report.lng || 77.5946;
 
-              const predictiveRadius = Math.max(5, report.severity * 3) + (timeOffset * (report.severity / 5) * 1.5);
+              const predictiveRadius =
+                Math.max(5, report.severity * 3) +
+                timeOffset * (report.severity / 5) * 1.5;
 
               return (
                 <CircleMarker
@@ -103,7 +105,7 @@ export default function Hotspots() {
                   pathOptions={{
                     color: getSeverityColor(report.severity),
                     fillColor: getSeverityColor(report.severity),
-                    fillOpacity: Math.min(0.8, 0.5 + (timeOffset / 144)),
+                    fillOpacity: Math.min(0.8, 0.5 + timeOffset / 144),
                   }}
                 >
                   <Popup className="custom-popup">
